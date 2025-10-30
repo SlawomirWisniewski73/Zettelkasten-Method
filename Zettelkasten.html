@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zettelkasten - Interactive Visualization (Enhanced)</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #root {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1.5rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-export-md {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-export-json {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-import {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            color: white;
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-help {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.6rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: white;
+        }
+
+        #graph-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #graph-canvas:active {
+            cursor: grabbing;
+        }
+
+        .note-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .note-card:hover {
+            border-color: #667eea;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .note-card.selected {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .note-id {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .note-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+
+        .note-preview {
+            font-size: 0.8rem;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .note-links {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.7rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tag-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            min-height: 45px;
+        }
+
+        .tag {
+            background: #667eea;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tag button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .stats {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.2rem;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Welcome Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .welcome-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .welcome-modal-content h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        .welcome-modal-content p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-modal-content ul {
+            margin: 1.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .welcome-modal-content li {
+            margin-bottom: 0.8rem;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .welcome-modal-content li strong {
+            color: #667eea;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .modal-checkbox {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .modal-checkbox input {
+            margin-right: 0.5rem;
+        }
+
+        .modal-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Sample initial data with Luhmann-style IDs
+        const defaultNotes = [
+            {
+                id: '1',
+                title: 'Zettelkasten Method',
+                content: 'A personal knowledge management system developed by Niklas Luhmann. The key principle is that notes are atomic, interconnected, and emergent.',
+                links: ['1a', '1b'],
+                tags: ['methodology', 'PKM']
+            },
+            {
+                id: '1a',
+                title: 'Atomic Notes Principle',
+                content: 'Each note should contain one idea or concept. This makes notes reusable and easier to link.',
+                links: ['1', '1a1'],
+                tags: ['principle']
+            },
+            {
+                id: '1a1',
+                title: 'One Idea Per Note',
+                content: 'Focusing on a single concept per note increases reusability and makes connections more meaningful.',
+                links: ['1a'],
+                tags: ['principle', 'best-practice']
+            },
+            {
+                id: '1b',
+                title: 'Links Create Knowledge',
+                content: 'The network of connections between notes is where knowledge emerges. Links show relationships and context.',
+                links: ['1', '1b1', '1b2'],
+                tags: ['principle', 'network']
+            },
+            {
+                id: '1b1',
+                title: 'Emergent Structure',
+                content: 'Unlike traditional hierarchical systems, Zettelkasten allows structure to emerge organically from connections.',
+                links: ['1b'],
+                tags: ['structure']
+            },
+            {
+                id: '1b2',
+                title: 'Luhmann\'s Numbering System',
+                content: 'Luhmann used a branching numbering system (1, 1a, 1a1, 1b, etc.) that allowed infinite expansion without destroying existing structure.',
+                links: ['1b', '2'],
+                tags: ['history', 'system']
+            },
+            {
+                id: '2',
+                title: 'Digital vs Analog',
+                content: 'While Luhmann used paper cards, digital tools offer search, backlinks, and graph visualization.',
+                links: ['1b2'],
+                tags: ['tools', 'comparison']
+            }
+        ];
+
+        // Welcome Modal Component
+        function WelcomeModal({ onClose }) {
+            const [dontShowAgain, setDontShowAgain] = useState(false);
+
+            const handleClose = () => {
+                if (dontShowAgain) {
+                    localStorage.setItem('zettelkasten_tutorial_completed', 'true');
+                }
+                onClose();
+            };
+
+            return (
+                <div className="modal-overlay" onClick={handleClose}>
+                    <div className="welcome-modal-content" onClick={(e) => e.stopPropagation()}>
+                        <h2>👋 Witaj w Zettelkasten!</h2>
+                        
+                        <p>
+                            To interaktywne demo pomoże Ci zrozumieć metodę Zettelkasten 
+                            w mniej niż 5 minut.
+                        </p>
+
+                        <ul>
+                            <li>
+                                <strong>Twórz notatki</strong> - Kliknij przycisk "➕ New Note" aby dodać nową notatkę
+                            </li>
+                            <li>
+                                <strong>Linkuj pomysły</strong> - W edycji notatki możesz dodawać połączenia 
+                                do innych notatek
+                            </li>
+                            <li>
+                                <strong>Zobacz graf</strong> - Obserwuj jak powstaje sieć Twoich myśli 
+                                na wizualizacji
+                            </li>
+                            <li>
+                                <strong>Eksperymentuj</strong> - Wszystkie zmiany są zapisywane lokalnie 
+                                w Twojej przeglądarce
+                            </li>
+                        </ul>
+
+                        <p style={{ color: '#764ba2', fontWeight: '600', marginTop: '1.5rem' }}>
+                            💡 Tip dla osób z ADHD: Nie martw się o perfekcję. 
+                            Po prostu zacznij pisać i zobacz co się stanie!
+                        </p>
+
+                        <div className="modal-footer">
+                            <label className="modal-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    checked={dontShowAgain}
+                                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                                />
+                                Nie pokazuj ponownie
+                            </label>
+                            <button className="modal-button" onClick={handleClose}>
+                                Zacznij!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ZettelkastenApp() {
+            const [notes, setNotes] = useState([]);
+            const [selectedNote, setSelectedNote] = useState(null);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [showModal, setShowModal] = useState(false);
+            const [modalMode, setModalMode] = useState('create');
+            const [editingNote, setEditingNote] = useState(null);
+            const [showWelcome, setShowWelcome] = useState(false);
+            const canvasRef = useRef(null);
+            const simulationRef = useRef(null);
+
+            // Form state
+            const [formData, setFormData] = useState({
+                id: '',
+                title: '',
+                content: '',
+                links: [],
+                tags: []
+            });
+            const [currentTag, setCurrentTag] = useState('');
+            const [currentLink, setCurrentLink] = useState('');
+
+            // FEATURE 1: Load notes from localStorage on mount
+            useEffect(() => {
+                const savedNotes = localStorage.getItem('zettelkasten_notes');
+                if (savedNotes) {
+                    try {
+                        const parsed = JSON.parse(savedNotes);
+                        setNotes(parsed);
+                        console.log('✓ Notatki załadowane z localStorage');
+                    } catch (e) {
+                        console.error('Błąd parsowania notatek:', e);
+                        setNotes(defaultNotes);
+                    }
+                } else {
+                    setNotes(defaultNotes);
+                }
+
+                // Check if tutorial should be shown
+                const tutorialCompleted = localStorage.getItem('zettelkasten_tutorial_completed');
+                if (!tutorialCompleted) {
+                    setShowWelcome(true);
+                }
+            }, []);
+
+            // FEATURE 1: Save notes to localStorage whenever they change
+            useEffect(() => {
+                if (notes.length > 0) {
+                    localStorage.setItem('zettelkasten_notes', JSON.stringify(notes));
+                    console.log('✓ Notatki zapisane do localStorage');
+                }
+            }, [notes]);
+
+            useEffect(() => {
+                if (canvasRef.current) {
+                    drawGraph();
+                }
+            }, [notes, selectedNote, searchQuery]);
+
+            const drawGraph = () => {
+                const canvas = canvasRef.current;
+                const container = canvas.parentElement;
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+
+                const filteredNotes = notes.filter(note => 
+                    searchQuery === '' || 
+                    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+                );
+
+                const nodes = filteredNotes.map(note => ({
+                    id: note.id,
+                    title: note.title,
+                    connections: note.links.length,
+                    isSelected: selectedNote?.id === note.id
+                }));
+
+                const links = [];
+                filteredNotes.forEach(note => {
+                    note.links.forEach(linkId => {
+                        if (filteredNotes.find(n => n.id === linkId)) {
+                            links.push({
+                                source: note.id,
+                                target: linkId
+                            });
+                        }
+                    });
+                });
+
+                if (simulationRef.current) {
+                    simulationRef.current.stop();
+                }
+
+                const simulation = d3.forceSimulation(nodes)
+                    .force('link', d3.forceLink(links).id(d => d.id).distance(100))
+                    .force('charge', d3.forceManyBody().strength(-300))
+                    .force('center', d3.forceCenter(width / 2, height / 2))
+                    .force('collision', d3.forceCollide().radius(40));
+
+                simulationRef.current = simulation;
+
+                function draw() {
+                    ctx.clearRect(0, 0, width, height);
+
+                    ctx.strokeStyle = '#ccc';
+                    ctx.lineWidth = 2;
+                    links.forEach(link => {
+                        ctx.beginPath();
+                        ctx.moveTo(link.source.x, link.source.y);
+                        ctx.lineTo(link.target.x, link.target.y);
+                        ctx.stroke();
+                    });
+
+                    nodes.forEach(node => {
+                        const radius = 8 + node.connections * 2;
+                        
+                        let color = '#667eea';
+                        if (node.connections === 0) color = '#94a3b8';
+                        else if (node.connections <= 2) color = '#667eea';
+                        else if (node.connections <= 4) color = '#764ba2';
+                        else color = '#ec4899';
+
+                        if (node.isSelected) {
+                            ctx.fillStyle = '#fbbf24';
+                            ctx.beginPath();
+                            ctx.arc(node.x, node.y, radius + 5, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+
+                        ctx.fillStyle = color;
+                        ctx.beginPath();
+                        ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#333';
+                        ctx.font = '12px sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        const maxWidth = 100;
+                        const text = node.title.length > 20 ? node.title.substring(0, 20) + '...' : node.title;
+                        ctx.fillText(text, node.x, node.y + radius + 15, maxWidth);
+                    });
+                }
+
+                simulation.on('tick', draw);
+
+                canvas.onclick = (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+
+                    nodes.forEach(node => {
+                        const radius = 8 + node.connections * 2;
+                        const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                        if (distance < radius) {
+                            const note = notes.find(n => n.id === node.id);
+                            setSelectedNote(note);
+                        }
+                    });
+                };
+
+                let dragNode = null;
+                
+                canvas.onmousedown = (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = event.clientX - rect.left;
+                    const y = event.clientY - rect.top;
+
+                    nodes.forEach(node => {
+                        const radius = 8 + node.connections * 2;
+                        const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                        if (distance < radius) {
+                            dragNode = node;
+                            node.fx = node.x;
+                            node.fy = node.y;
+                        }
+                    });
+                };
+
+                canvas.onmousemove = (event) => {
+                    if (dragNode) {
+                        const rect = canvas.getBoundingClientRect();
+                        dragNode.fx = event.clientX - rect.left;
+                        dragNode.fy = event.clientY - rect.top;
+                        simulation.alpha(0.3).restart();
+                    }
+                };
+
+                canvas.onmouseup = () => {
+                    if (dragNode) {
+                        dragNode.fx = null;
+                        dragNode.fy = null;
+                        dragNode = null;
+                    }
+                };
+            };
+
+            const generateNextId = (parentId = '') => {
+                if (parentId === '') {
+                    const topLevelIds = notes
+                        .map(n => n.id)
+                        .filter(id => /^\d+$/.test(id))
+                        .map(id => parseInt(id));
+                    const maxId = topLevelIds.length > 0 ? Math.max(...topLevelIds) : 0;
+                    return String(maxId + 1);
+                }
+                
+                const childPattern = new RegExp(`^${parentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[a-z]\\d*$`);
+                const children = notes
+                    .map(n => n.id)
+                    .filter(id => childPattern.test(id));
+                
+                if (children.length === 0) {
+                    return `${parentId}a`;
+                }
+                
+                const lastChild = children.sort().pop();
+                const lastLetter = lastChild.match(/[a-z]+/g).pop();
+                const lastNumber = lastChild.match(/\d+$/);
+                
+                if (lastNumber) {
+                    return `${parentId}${lastLetter}${parseInt(lastNumber[0]) + 1}`;
+                } else if (lastLetter === 'z') {
+                    return `${parentId}a1`;
+                } else {
+                    return `${parentId}${String.fromCharCode(lastLetter.charCodeAt(0) + 1)}`;
+                }
+            };
+
+            const openCreateModal = () => {
+                const newId = generateNextId(selectedNote?.id || '');
+                setFormData({
+                    id: newId,
+                    title: '',
+                    content: '',
+                    links: selectedNote ? [selectedNote.id] : [],
+                    tags: []
+                });
+                setModalMode('create');
+                setShowModal(true);
+            };
+
+            const openEditModal = () => {
+                if (!selectedNote) return;
+                setFormData({...selectedNote});
+                setModalMode('edit');
+                setEditingNote(selectedNote);
+                setShowModal(true);
+            };
+
+            const handleSubmit = () => {
+                if (!formData.title || !formData.content) {
+                    alert('Proszę wypełnić tytuł i treść');
+                    return;
+                }
+
+                if (modalMode === 'create') {
+                    setNotes([...notes, formData]);
+                } else {
+                    setNotes(notes.map(n => n.id === formData.id ? formData : n));
+                    if (selectedNote?.id === formData.id) {
+                        setSelectedNote(formData);
+                    }
+                }
+
+                setShowModal(false);
+                setFormData({ id: '', title: '', content: '', links: [], tags: [] });
+            };
+
+            const deleteNote = () => {
+                if (!selectedNote) return;
+                if (confirm(`Usunąć notatkę "${selectedNote.title}"?`)) {
+                    setNotes(notes.filter(n => n.id !== selectedNote.id));
+                    setSelectedNote(null);
+                }
+            };
+
+            const addTag = () => {
+                if (currentTag && !formData.tags.includes(currentTag)) {
+                    setFormData({...formData, tags: [...formData.tags, currentTag]});
+                    setCurrentTag('');
+                }
+            };
+
+            const removeTag = (tag) => {
+                setFormData({...formData, tags: formData.tags.filter(t => t !== tag)});
+            };
+
+            const addLink = () => {
+                if (currentLink && notes.find(n => n.id === currentLink) && !formData.links.includes(currentLink)) {
+                    setFormData({...formData, links: [...formData.links, currentLink]});
+                    setCurrentLink('');
+                }
+            };
+
+            const removeLink = (linkId) => {
+                setFormData({...formData, links: formData.links.filter(l => l !== linkId)});
+            };
+
+            // FEATURE 2: Export to Markdown
+            const exportToMarkdown = () => {
+                if (notes.length === 0) {
+                    alert('Brak notatek do eksportu!');
+                    return;
+                }
+
+                let markdown = '# Mój Zettelkasten\n\n';
+                markdown += `Eksport z dnia: ${new Date().toLocaleString('pl-PL')}\n\n`;
+                markdown += `Liczba notatek: ${notes.length}\n\n`;
+                markdown += '---\n\n';
+
+                notes.forEach((note, index) => {
+                    markdown += `## ${note.title || `Notatka ${index + 1}`}\n\n`;
+                    markdown += `**ID:** ${note.id}\n\n`;
+                    markdown += `${note.content || '(brak treści)'}\n\n`;
+                    
+                    if (note.tags && note.tags.length > 0) {
+                        markdown += `**Tagi:** ${note.tags.map(tag => `#${tag}`).join(', ')}\n\n`;
+                    }
+                    
+                    if (note.links && note.links.length > 0) {
+                        markdown += `**Połączone z:**\n`;
+                        note.links.forEach(linkId => {
+                            const linkedNote = notes.find(n => n.id === linkId);
+                            if (linkedNote) {
+                                markdown += `- [[${linkedNote.title || linkId}]]\n`;
+                            }
+                        });
+                        markdown += '\n';
+                    }
+                    
+                    const backlinks = notes.filter(n => n.links && n.links.includes(note.id));
+                    if (backlinks.length > 0) {
+                        markdown += `**Backlinki:**\n`;
+                        backlinks.forEach(bl => {
+                            markdown += `- [[${bl.title || bl.id}]]\n`;
+                        });
+                        markdown += '\n';
+                    }
+                    
+                    markdown += '---\n\n';
+                });
+
+                const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `zettelkasten_${new Date().toISOString().split('T')[0]}.md`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('✓ Notatki wyeksportowane do Markdown');
+            };
+
+            // FEATURE 3: Export to JSON
+            const exportToJSON = () => {
+                if (notes.length === 0) {
+                    alert('Brak notatek do eksportu!');
+                    return;
+                }
+
+                const dataStr = JSON.stringify(notes, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `zettelkasten_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                console.log('✓ Notatki wyeksportowane do JSON');
+            };
+
+            // FEATURE 3: Import from JSON
+            const importFromJSON = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        
+                        if (!Array.isArray(imported)) {
+                            alert('Nieprawidłowy format pliku. Oczekiwano tablicy notatek.');
+                            return;
+                        }
+
+                        const strategy = window.confirm(
+                            `Znaleziono ${imported.length} notatek.\n\n` +
+                            `Kliknij OK aby ZASTĄPIĆ obecne notatki.\n` +
+                            `Kliknij Anuluj aby DODAĆ do obecnych notatek.`
+                        );
+
+                        if (strategy) {
+                            setNotes(imported);
+                            console.log('✓ Notatki zastąpione importem');
+                        } else {
+                            const newNotes = imported.map(note => ({
+                                ...note,
+                                id: note.id || `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                            }));
+                            setNotes([...notes, ...newNotes]);
+                            console.log('✓ Notatki dodane do istniejących');
+                        }
+
+                        alert(`Import zakończony! Zaimportowano ${imported.length} notatek.`);
+                    } catch (error) {
+                        console.error('Błąd importu:', error);
+                        alert('Błąd podczas importu pliku. Upewnij się, że plik ma poprawny format JSON.');
+                    }
+                };
+
+                reader.readAsText(file);
+                event.target.value = '';
+            };
+
+            // FEATURE 1: Clear all data
+            const clearAllData = () => {
+                if (window.confirm('Czy na pewno chcesz usunąć wszystkie notatki? Tej operacji nie można cofnąć.')) {
+                    localStorage.removeItem('zettelkasten_notes');
+                    setNotes(defaultNotes);
+                    setSelectedNote(null);
+                    console.log('✓ Wszystkie notatki usunięte');
+                }
+            };
+
+            const filteredNotes = notes.filter(note => 
+                searchQuery === '' || 
+                note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+
+            return (
+                <>
+                    <div className="header">
+                        <h1>🗂️ Zettelkasten - Interactive Visualization</h1>
+                        <p>A digital implementation of Niklas Luhmann's knowledge management system (Enhanced Edition)</p>
+                        
+                        <div className="button-group">
+                            <button className="btn btn-export-md" onClick={exportToMarkdown}>
+                                📥 Export Markdown
+                            </button>
+
+                            <button className="btn btn-export-json" onClick={exportToJSON}>
+                                💾 Export JSON
+                            </button>
+
+                            <label className="file-input-label btn-import">
+                                📤 Import JSON
+                                <input 
+                                    type="file" 
+                                    accept=".json"
+                                    onChange={importFromJSON}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+
+                            <button className="btn btn-clear" onClick={clearAllData}>
+                                🗑️ Wyczyść Dane
+                            </button>
+
+                            <button className="btn btn-help" onClick={() => setShowWelcome(true)}>
+                                ❓ Pomoc
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="container">
+                        <div className="sidebar">
+                            <div className="stats">
+                                <div className="stats-grid">
+                                    <div className="stat-item">
+                                        <div className="stat-value">{notes.length}</div>
+                                        <div className="stat-label">Notes</div>
+                                    </div>
+                                    <div className="stat-item">
+                                        <div className="stat-value">
+                                            {notes.reduce((sum, note) => sum + note.links.length, 0)}
+                                        </div>
+                                        <div className="stat-label">Links</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h3 style={{marginBottom: '1rem', color: '#333'}}>All Notes</h3>
+                            {filteredNotes.length === 0 ? (
+                                <p style={{color: '#999', textAlign: 'center', marginTop: '2rem'}}>
+                                    No notes found
+                                </p>
+                            ) : (
+                                filteredNotes.map(note => (
+                                    <div 
+                                        key={note.id}
+                                        className={`note-card ${selectedNote?.id === note.id ? 'selected' : ''}`}
+                                        onClick={() => setSelectedNote(note)}
+                                    >
+                                        <div className="note-id">#{note.id}</div>
+                                        <div className="note-title">{note.title}</div>
+                                        <div className="note-preview">{note.content}</div>
+                                        <div className="note-links">
+                                            {note.links.length} link{note.links.length !== 1 ? 's' : ''}
+                                            {note.tags.length > 0 && ` • ${note.tags.join(', ')}`}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="main-content">
+                            <div className="controls">
+                                <button className="btn btn-primary" onClick={openCreateModal}>
+                                    ➕ New Note
+                                </button>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    onClick={openEditModal}
+                                    disabled={!selectedNote}
+                                >
+                                    ✏️ Edit
+                                </button>
+                                <button 
+                                    className="btn btn-secondary" 
+                                    onClick={deleteNote}
+                                    disabled={!selectedNote}
+                                >
+                                    🗑️ Delete
+                                </button>
+                                <input 
+                                    type="text"
+                                    className="search-box"
+                                    placeholder="Search notes, tags..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="canvas-container">
+                                {notes.length === 0 ? (
+                                    <div className="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p>Create your first note to begin your Zettelkasten</p>
+                                    </div>
+                                ) : (
+                                    <canvas ref={canvasRef} id="graph-canvas"></canvas>
+                                )}
+                                
+                                <div className="legend">
+                                    <strong style={{display: 'block', marginBottom: '0.8rem'}}>Legend</strong>
+                                    <div className="legend-item">
+                                        <div className="legend-color" style={{background: '#94a3b8'}}></div>
+                                        <span>No links</span>
+                                    </div>
+                                    <div className="legend-item">
+                                        <div className="legend-color" style={{background: '#667eea'}}></div>
+                                        <span>1-2 links</span>
+                                    </div>
+                                    <div className="legend-item">
+                                        <div className="legend-color" style={{background: '#764ba2'}}></div>
+                                        <span>3-4 links</span>
+                                    </div>
+                                    <div className="legend-item">
+                                        <div className="legend-color" style={{background: '#ec4899'}}></div>
+                                        <span>5+ links (hub)</span>
+                                    </div>
+                                    <div className="legend-item">
+                                        <div className="legend-color" style={{background: '#fbbf24'}}></div>
+                                        <span>Selected</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="modal" onClick={() => setShowModal(false)}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h2>{modalMode === 'create' ? 'Create New Note' : 'Edit Note'}</h2>
+                                    <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Note ID (Luhmann-style)</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.id}
+                                        onChange={(e) => setFormData({...formData, id: e.target.value})}
+                                        placeholder="e.g., 1, 1a, 1a1"
+                                        disabled={modalMode === 'edit'}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Title</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                                        placeholder="Note title"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Content</label>
+                                    <textarea 
+                                        value={formData.content}
+                                        onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                        placeholder="Note content..."
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Tags</label>
+                                    <div style={{display: 'flex', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                                        <input 
+                                            type="text"
+                                            value={currentTag}
+                                            onChange={(e) => setCurrentTag(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                                            placeholder="Add tag"
+                                            style={{flex: 1}}
+                                        />
+                                        <button className="btn btn-secondary" onClick={addTag}>Add</button>
+                                    </div>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem'}}>
+                                        {formData.tags.map(tag => (
+                                            <div key={tag} className="tag">
+                                                {tag}
+                                                <button onClick={() => removeTag(tag)}>×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Links to Other Notes</label>
+                                    <div style={{display: 'flex', gap: '0.5rem', marginBottom: '0.5rem'}}>
+                                        <select 
+                                            value={currentLink}
+                                            onChange={(e) => setCurrentLink(e.target.value)}
+                                            style={{flex: 1}}
+                                        >
+                                            <option value="">Select a note...</option>
+                                            {notes
+                                                .filter(n => n.id !== formData.id && !formData.links.includes(n.id))
+                                                .map(note => (
+                                                    <option key={note.id} value={note.id}>
+                                                        #{note.id} - {note.title}
+                                                    </option>
+                                                ))
+                                            }
+                                        </select>
+                                        <button className="btn btn-secondary" onClick={addLink}>Add</button>
+                                    </div>
+                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '0.5rem'}}>
+                                        {formData.links.map(linkId => {
+                                            const linkedNote = notes.find(n => n.id === linkId);
+                                            return linkedNote ? (
+                                                <div key={linkId} className="tag">
+                                                    #{linkId} - {linkedNote.title}
+                                                    <button onClick={() => removeLink(linkId)}>×</button>
+                                                </div>
+                                            ) : null;
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div style={{display: 'flex', gap: '1rem', marginTop: '1.5rem'}}>
+                                    <button className="btn btn-primary" onClick={handleSubmit} style={{flex: 1}}>
+                                        {modalMode === 'create' ? 'Create Note' : 'Save Changes'}
+                                    </button>
+                                    <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+                </>
+            );
+        }
+
+        ReactDOM.render(<ZettelkastenApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
