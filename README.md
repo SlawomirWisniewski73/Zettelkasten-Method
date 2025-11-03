@@ -43,6 +43,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 ## Szybki start
 
 Wystarczy otworzyć [zettelkasten.site](https://zettelkasten.site) i zacząć pisać.
+<img width="816" height="713" alt="Zrzut ekranu 2025-11-2 o 20 55 13" src="https://github.com/user-attachments/assets/41a1f657-e376-40f2-9af0-3fd8e098e39b" />
 
 
 ## Eksportuj swoje dane
@@ -101,6 +102,7 @@ Dziennikarze, badacze, studenci, twórcy z ADHD, wszyscy produktywni ludzie
 ## Quick Start
 
 Just open [zettelkasten.site](https://zettelkasten.site) and start typing.
+<img width="816" height="713" alt="Zrzut ekranu 2025-11-2 o 20 55 13" src="https://github.com/user-attachments/assets/96792968-f168-4280-b88a-bfc45037cdea" />
 
 
 ## Export Your Data
