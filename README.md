@@ -1,4 +1,4 @@
-# Zettelkasten-Method
+# Zettelkasten-Method for ADHD brains
 Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkasten.site) 
 # 1. Wersja polska
 # 2. English version
