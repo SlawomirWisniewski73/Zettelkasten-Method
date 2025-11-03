@@ -10,6 +10,8 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 > **50 KB pojedynczy plik interaktywnego Zettelkasten** zawierający wszystko, co ważne.
 
 > **licencja MIT**
+
+> **chcesz zaczać od "czystej kartoteki"? Zaimportuj plik zettelkasten_2025-11-03.JSON lub usuń wszystkie notatki demo z tablicy** 
  
 ## Co sprawia, że jest to wyjątkowe?
 
@@ -69,6 +71,8 @@ Dziennikarze, badacze, studenci, twórcy z ADHD, wszyscy produktywni ludzie
 > **50KB single-file interactive Zettelkasten** with everything that matters.
 >
 > **MIT license**
+>
+>**Want to start with an “empty box”? Import the file zettelkasten_2025-11-03.JSON or delete all demo notes from the board.**
 
 ## What makes this special?
 
