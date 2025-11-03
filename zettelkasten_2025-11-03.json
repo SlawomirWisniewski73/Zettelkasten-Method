@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1b",
+    "title": "Pierwsza w szablonie",
+    "content": "Pierwsza notatka w szablonie JSON",
+    "links": [
+      "1",
+      "1b1",
+      "1b2"
+    ],
+    "tags": []
+  }
+]
