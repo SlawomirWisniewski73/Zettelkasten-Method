@@ -149,6 +149,7 @@
             flex: 1;
             position: relative;
             background: white;
+            overflow: auto;
         }
 
         #graph-canvas {
@@ -175,6 +176,16 @@
             border-color: #667eea;
             transform: translateX(4px);
             box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            /* Delikatne podświetlenie karty, aby zawartość była bardziej czytelna */
+            background: #f8f9ff;
+        }
+
+        /* When hovering over a note card reveal the full preview text */
+        .note-card:hover .note-preview {
+            /* reset the truncation styles so the entire content is visible */
+            white-space: normal;
+            overflow: visible;
+            text-overflow: initial;
         }
 
         .note-card.selected {
@@ -394,6 +405,25 @@
             opacity: 0.5;
         }
 
+        /* Tooltip wyświetlany przy najechaniu na węzeł na wykresie */
+        .node-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            max-width: 280px;
+            pointer-events: none; /* tooltip nie przejmuje focusu i nie przeszkadza w interakcji */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            /* Poprawione dla Firefox */
+            will-change: transform;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
         /* Welcome Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -602,6 +632,11 @@
                             To interaktywne demo pomoże Ci zrozumieć metodę Zettelkasten 
                             w mniej niż 5 minut.
                         </p>
+                        
+                        <p>
+                            Jeśli chcesz tworzyć własny system zobacz tutaj <a href="https://adhdakademia.com/">adhdakademia.com </a> i tu <a href="https://github.com/SlawomirWisniewski73/Zettelkasten-Method">GitHub</a>                             
+                                
+                        </p>
 
                         <ul>
                             <li>
@@ -624,6 +659,10 @@
                         <p style={{ color: '#764ba2', fontWeight: '600', marginTop: '1.5rem' }}>
                             💡 Tip dla osób z ADHD: Nie martw się o perfekcję. 
                             Po prostu zacznij pisać i zobacz co się stanie!
+                        </p>
+
+                        <p>
+                             <a href="https://donate.stripe.com/6oE6svbQJ6hO1ry5km">WESPRZYJ PROJEKT / SUPPORT US</a>                            
                         </p>
 
                         <div className="modal-footer">
@@ -651,9 +690,13 @@
             const [showModal, setShowModal] = useState(false);
             const [modalMode, setModalMode] = useState('create');
             const [editingNote, setEditingNote] = useState(null);
+            // Stan do przechowywania węzła, na którym znajduje się kursor oraz jego pozycji na ekranie
+            const [hoveredNode, setHoveredNode] = useState(null);
+            const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
             const [showWelcome, setShowWelcome] = useState(false);
             const canvasRef = useRef(null);
             const simulationRef = useRef(null);
+            const resizeTimeoutRef = useRef(null);
 
             // Form state
             const [formData, setFormData] = useState({
@@ -703,11 +746,37 @@
                 }
             }, [notes, selectedNote, searchQuery]);
 
+            // Obsługa resize okna z debounce
+            useEffect(() => {
+                const handleResize = () => {
+                    // Debounce - czekaj 150ms po ostatnim resize przed przerysowaniem
+                    if (resizeTimeoutRef.current) {
+                        clearTimeout(resizeTimeoutRef.current);
+                    }
+                    
+                    resizeTimeoutRef.current = setTimeout(() => {
+                        if (canvasRef.current && notes.length > 0) {
+                            drawGraph();
+                        }
+                    }, 150);
+                };
+
+                window.addEventListener('resize', handleResize);
+                
+                // Cleanup
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                    if (resizeTimeoutRef.current) {
+                        clearTimeout(resizeTimeoutRef.current);
+                    }
+                };
+            }, [notes, selectedNote, searchQuery]); // Re-attach listener when dependencies change
+
             const drawGraph = () => {
                 const canvas = canvasRef.current;
                 const container = canvas.parentElement;
-                const width = container.clientWidth;
-                const height = container.clientHeight;
+                const width = Math.max(container.clientWidth, 1200);
+                const height = Math.max(container.clientHeight, 800);
 
                 canvas.width = width;
                 canvas.height = height;
@@ -795,7 +864,18 @@
                     });
                 }
 
-                simulation.on('tick', draw);
+                // Przeciwdziałanie wypływaniu węzłów poza widoczne granice canvasu
+                simulation.on('tick', () => {
+                    const margin = 50; // margines, aby węzły nie przyklejały się do krawędzi
+                    nodes.forEach(node => {
+                        // promień węzła zależy od liczby połączeń
+                        const radius = 8 + node.connections * 2;
+                        // ogranicz X i Y do dozwolonego obszaru
+                        node.x = Math.max(radius + margin, Math.min(width - radius - margin, node.x));
+                        node.y = Math.max(radius + margin, Math.min(height - radius - margin, node.y));
+                    });
+                    draw();
+                });
 
                 canvas.onclick = (event) => {
                     const rect = canvas.getBoundingClientRect();
@@ -831,12 +911,60 @@
                 };
 
                 canvas.onmousemove = (event) => {
+                    const rect = canvas.getBoundingClientRect();
+                    // jeżeli przeciągamy węzeł, aktualizujemy jego pozycję
                     if (dragNode) {
-                        const rect = canvas.getBoundingClientRect();
                         dragNode.fx = event.clientX - rect.left;
                         dragNode.fy = event.clientY - rect.top;
                         simulation.alpha(0.3).restart();
+                    } else {
+                        // w przeciwnym razie wykrywamy najechanie kursorem na węzeł
+                        const x = event.clientX - rect.left;
+                        const y = event.clientY - rect.top;
+                        let hovered = null;
+                        nodes.forEach(node => {
+                            const radius = 8 + node.connections * 2;
+                            const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                            if (distance < radius) {
+                                // znajdź pełny obiekt notatki po ID
+                                const found = notes.find(n => n.id === node.id);
+                                if (found) {
+                                    hovered = found;
+                                }
+                            }
+                        });
+                        if (hovered) {
+                            setHoveredNode(hovered);
+                            // Oblicz pozycję tooltipa z uwzględnieniem granic kontenera
+                            const mouseX = event.clientX - rect.left;
+                            const mouseY = event.clientY - rect.top;
+                            
+                            // Offset dla tooltipa (15px w prawo i dół)
+                            let tooltipX = mouseX + 15;
+                            let tooltipY = mouseY + 15;
+                            
+                            // Sprawdź czy tooltip nie wyjdzie poza prawy brzeg
+                            const tooltipWidth = 300; // przybliżona szerokość tooltipa
+                            if (tooltipX + tooltipWidth > rect.width) {
+                                tooltipX = mouseX - tooltipWidth - 15; // pokaż po lewej
+                            }
+                            
+                            // Sprawdź czy tooltip nie wyjdzie poza dolny brzeg
+                            const tooltipHeight = 100; // przybliżona wysokość tooltipa
+                            if (tooltipY + tooltipHeight > rect.height) {
+                                tooltipY = mouseY - tooltipHeight - 15; // pokaż wyżej
+                            }
+                            
+                            setHoverPos({ x: tooltipX, y: tooltipY });
+                        } else {
+                            setHoveredNode(null);
+                        }
                     }
+                };
+
+                canvas.onmouseleave = () => {
+                    // schowaj tooltip po opuszczeniu obszaru kanwy
+                    setHoveredNode(null);
                 };
 
                 canvas.onmouseup = () => {
@@ -1093,7 +1221,7 @@
                 <>
                     <div className="header">
                         <h1>🗂️ Zettelkasten - Interactive Visualization</h1>
-                        <p>A digital implementation of Niklas Luhmann's knowledge management system (Enhanced Edition)</p>
+                        <p>A digital implementation of Niklas Luhmann's knowledge management system (see more <a href="https://adhdakademia.com/">adhdakademia.com </a> and <a href="https://github.com/SlawomirWisniewski73/Zettelkasten-Method">GitHub</a>) <a href="https://donate.stripe.com/6oE6svbQJ6hO1ry5km">WESPRZYJ PROJEKT / SUPPORT US</a></p>
                         
                         <div className="button-group">
                             <button className="btn btn-export-md" onClick={exportToMarkdown}>
@@ -1152,6 +1280,8 @@
                                         key={note.id}
                                         className={`note-card ${selectedNote?.id === note.id ? 'selected' : ''}`}
                                         onClick={() => setSelectedNote(note)}
+                                        /* Ustawienie atrybutu title umożliwia szybki podgląd treści notatki przy najechaniu kursorem */
+                                        title={note.content}
                                     >
                                         <div className="note-id">#{note.id}</div>
                                         <div className="note-title">{note.title}</div>
@@ -1194,40 +1324,51 @@
                             </div>
 
                             <div className="canvas-container">
-                                {notes.length === 0 ? (
-                                    <div className="empty-state">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <p>Create your first note to begin your Zettelkasten</p>
+                                    {notes.length === 0 ? (
+                                        <div className="empty-state">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            <p>Create your first note to begin your Zettelkasten</p>
+                                        </div>
+                                    ) : (
+                                        <canvas ref={canvasRef} id="graph-canvas"></canvas>
+                                    )}
+
+                                    {/* Tooltip wyświetlany po najechaniu na węzeł w grafie */}
+                                    {hoveredNode && (
+                                        <div 
+                                            className="node-tooltip" 
+                                            style={{ left: hoverPos.x, top: hoverPos.y }}
+                                        >
+                                            <div style={{fontWeight: '600', marginBottom: '0.3rem'}}>{hoveredNode.title}</div>
+                                            <div style={{fontSize: '0.75rem', lineHeight: '1.2'}}>{hoveredNode.content}</div>
+                                        </div>
+                                    )}
+
+                                    <div className="legend">
+                                        <strong style={{display: 'block', marginBottom: '0.8rem'}}>Legend</strong>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{background: '#94a3b8'}}></div>
+                                            <span>No links</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{background: '#667eea'}}></div>
+                                            <span>1-2 links</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{background: '#764ba2'}}></div>
+                                            <span>3-4 links</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{background: '#ec4899'}}></div>
+                                            <span>5+ links (hub)</span>
+                                        </div>
+                                        <div className="legend-item">
+                                            <div className="legend-color" style={{background: '#fbbf24'}}></div>
+                                            <span>Selected</span>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <canvas ref={canvasRef} id="graph-canvas"></canvas>
-                                )}
-                                
-                                <div className="legend">
-                                    <strong style={{display: 'block', marginBottom: '0.8rem'}}>Legend</strong>
-                                    <div className="legend-item">
-                                        <div className="legend-color" style={{background: '#94a3b8'}}></div>
-                                        <span>No links</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="legend-color" style={{background: '#667eea'}}></div>
-                                        <span>1-2 links</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="legend-color" style={{background: '#764ba2'}}></div>
-                                        <span>3-4 links</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="legend-color" style={{background: '#ec4899'}}></div>
-                                        <span>5+ links (hub)</span>
-                                    </div>
-                                    <div className="legend-item">
-                                        <div className="legend-color" style={{background: '#fbbf24'}}></div>
-                                        <span>Selected</span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
