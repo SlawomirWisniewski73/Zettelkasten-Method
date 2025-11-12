@@ -3,7 +3,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 
 # English version
 ---
-> # 3. Support this project [SUPPORT](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
+> # Support this project --> [SUPPORT](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
 ---
 # 🧠 Zettelkasten Interactive - ENHANCED
 
