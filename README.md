@@ -4,7 +4,7 @@ Metoda Zettelkasten w jednym pliku file --> [zettelkasten.site](https://zettelka
 ---
 #  English version --> README_ENG.MD
 ---
-> # 3. Wesprzyj ten projekt [WESPRZYJ](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
+> # Wesprzyj ten projekt [WESPRZYJ](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
 ---
 
 # 🧠 Zettelkasten Interactive – ULEPSZONY
