@@ -9,7 +9,7 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-');
+  gtag('config', 'G-Z4CFZXX27E');
 </script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -1271,6 +1271,19 @@
                 }
             };
 
+            // FEATURE: Usuń demonstracyjne notatki i zacznij z pustą listą
+            const startFresh = () => {
+                const message =
+                    'Czy chcesz usunąć przykładowe notatki i pozostawić pustą listę?';
+                if (window.confirm(message)) {
+                    // Zapisz pustą listę w localStorage, aby nie wczytywało domyślnych notatek po odświeżeniu
+                    localStorage.setItem('zettelkasten_notes', JSON.stringify([]));
+                    setNotes([]);
+                    setSelectedNote(null);
+                    console.log('✓ Przykładowe notatki usunięte – możesz zacząć od nowa');
+                }
+            };
+
             const filteredNotes = notes.filter(note => 
                 searchQuery === '' || 
                 note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1305,6 +1318,11 @@
 
                             <button className="btn btn-clear" onClick={clearAllData}>
                                 🗑️ Wyczyść Dane
+                            </button>
+
+                            {/* Dodatkowy przycisk umożliwiający usunięcie przykładowych notatek i rozpoczęcie z pustą listą */}
+                            <button className="btn btn-secondary" onClick={startFresh}>
+                                🔄 Czysty Start
                             </button>
 
                             <button className="btn btn-help" onClick={() => setShowWelcome(true)}>
