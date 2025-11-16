@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1",
+    "title": "First note - begining of network",
+    "content": "The first note is the beginning of an entire network of knowledge.",
+    "links": [
+      "1a",
+      "1b"
+    ],
+    "tags": [
+      "first note"
+    ]
+  }
+]
