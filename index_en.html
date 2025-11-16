@@ -9,7 +9,7 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-');
+  gtag('config', 'G-Z4CFZXX27E');
 </script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -1275,6 +1275,21 @@
                 }
             };
 
+            // FEATURE: Remove demonstration notes and start with an empty list
+            const startFresh = () => {
+                // Ask the user for confirmation before wiping demo entries
+                const confirmMsg =
+                    'Czy chcesz wyczyścić wgrane przykładowe notatki i rozpocząć zupełnie od pustej listy?';
+                if (window.confirm(confirmMsg)) {
+                    // Store an empty array in localStorage so that the app doesn’t repopulate default notes on reload
+                    localStorage.setItem('zettelkasten_notes', JSON.stringify([]));
+                    // Update state to reflect no notes
+                    setNotes([]);
+                    setSelectedNote(null);
+                    console.log('✓ Przykładowe notatki usunięte – możesz zacząć od zera');
+                }
+            };
+
             const filteredNotes = notes.filter(note => 
                 searchQuery === '' || 
                 note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1309,6 +1324,11 @@
 
                             <button className="btn btn-clear" onClick={clearAllData}>
                                 🗑️ Clear Data
+                            </button>
+
+                            {/* New button to strip out sample notes and leave an empty slate */}
+                            <button className="btn btn-secondary" onClick={startFresh}>
+                                🔄 Start Fresh
                             </button>
 
                             <button className="btn btn-help" onClick={() => setShowWelcome(true)}>
