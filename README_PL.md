@@ -10,11 +10,11 @@ Metoda Zettelkasten w jednym pliku file --> [zettelkasten.site](https://zettelka
 
 # 🧠 Zettelkasten Interactive – ULEPSZONY
 
-> **50 KB pojedynczy plik interaktywnego Zettelkasten** zawierający wszystko, co ważne.
+> **60 KB pojedynczy plik interaktywnego Zettelkasten** zawierający wszystko, co ważne.
 
 > **licencja MIT**
 
-> **chcesz zaczać od "czystej kartoteki"? Zaimportuj plik zettelkasten_2025-11-03.JSON lub usuń wszystkie notatki demo z tablicy** 
+> **chcesz zaczać od "czystej kartoteki"? Zaimportuj plik zettelkasten_initial_note.JSON lub usuń wszystkie notatki demo z tablicy** 
  
 ## Co sprawia, że jest to wyjątkowe?
 
