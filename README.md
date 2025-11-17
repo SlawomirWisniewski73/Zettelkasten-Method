@@ -8,7 +8,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 ---
 # 🧠 Zettelkasten Interactive - ENHANCED
 
-> **50KB single-file interactive Zettelkasten** with everything that matters.
+> **60KB single-file interactive Zettelkasten** with everything that matters.
 >
 > **MIT license**
 >
@@ -39,7 +39,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 - Intuitive design
 
 💜 **For ADHD Brains**
-- Designed by doctor with ADHD
+- Designed by a doctor with ADHD
 - Non-linear thinking = feature, not bug
 - See connections, not just lists
 
