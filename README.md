@@ -1,7 +1,7 @@
 # Zettelkasten-Method for ADHD brains
 Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkasten.site) 
 
-# English version
+# Polish version --> README_PL.MD
 ---
 > # Support this project --> [SUPPORT](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
 > # Manual of zettelkasten.site --> [Download](https://aardvarksproduction.gumroad.com/l/mnoahc)
