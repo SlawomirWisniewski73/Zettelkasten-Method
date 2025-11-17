@@ -4,6 +4,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 # English version
 ---
 > # Support this project --> [SUPPORT](https://donate.stripe.com/6oE6svbQJ6hO1ry5km)
+> # Manual of zettelkasten.site --> [Download](https://aardvarksproduction.gumroad.com/l/mnoahc)
 ---
 # 🧠 Zettelkasten Interactive - ENHANCED
 
@@ -55,8 +56,8 @@ Just open [zettelkasten.site](https://zettelkasten.site) and start typing.
 3. All data in localStorage, yours forever
 
 ## Learn More:
-
-📖 [Full Productivity Guide for ADHD](https://adhdakademia.com/dlaczego-tradycyjne-systemy-notatek-zawodza-osoby-z-adhd-i-co-zrobilem-w-zwiazku-z-tym/) - almost 50 pages comprehensive guide and how I did it...
+- [Free manual of zettelkasten.site](https://aardvarksproduction.gumroad.com/l/mnoahc)
+- 📖 [Full Productivity Guide for ADHD](https://adhdakademia.com/dlaczego-tradycyjne-systemy-notatek-zawodza-osoby-z-adhd-i-co-zrobilem-w-zwiazku-z-tym/) - almost 50 pages comprehensive guide and how I did it...
 - [wersja polska na naffy.pl](https://www.naffy.io/lekturkowo/zettelkasten-dla-adhd-system-ktory-wreszcie-dziala-PrW)
 - [english version on Gumroad.com](https://aardvarksproduction.gumroad.com/l/tlqkid )
 
