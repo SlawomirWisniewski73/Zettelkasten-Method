@@ -12,7 +12,7 @@ Zettelkasten Method in one HTML file --> [zettelkasten.site](https://zettelkaste
 >
 > **MIT license**
 >
->**Want to start with an “empty box”? Import the file zettelkasten_2025-11-03.JSON or delete all demo notes from the board.**
+>**Want to start with an “empty box”? Import the file zettelkasten_initial_note.JSON or delete all demo notes from the board.**
 
 ## What makes this special?
 
